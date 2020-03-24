@@ -158,26 +158,26 @@ NLP里面，最细粒度的是词语，词语组成句子，句子再组成段�
 
 其中，
 + $V$：词汇表长度
-+ $N$：隐层神经元个数，同时也是词向量维度
-+ $W \in R^{V\times N}$：输入层到隐层的权重矩阵，其实就是词向量矩阵，其中每一行代表一个词的词向量
-+ $W' \in R^{N\times V}$：隐层到输出层的权重矩阵，其中每一列也可以看作额外的一种词向量
++ $N$：隐藏层神经元个数，同时也是词向量维度
++ $W \in R^{V\times N}$：输入层到隐藏层的权重矩阵，其实就是词向量矩阵，其中每一行代表一个词的词向量
++ $W' \in R^{N\times V}$：隐藏层到输出层的权重矩阵，其中每一列也可以看作额外的一种词向量
 
 > 看到这，你可能开始纳闷了，怎么前一个图是输入层、投影层、输出层，且输入层到投影层不带权重，投影层到输出层带权重，而这个图是输入层、隐藏层、输出层，且输入层到隐藏层以及隐藏层到输出层都带权重呢？
 > 
 > 仔细深究，你会发现上一个图来自2013年`Mikolov`的原始论文，这一个图来自2014年`Rong, X`的文章，虽然都是讲的`word2Vec`，但这两者之间有不少微妙的差别，但是本质是一样的：
 > + 2013年，`Mikolov`发表`word2vec`的原始论文，`word2vec`的网络结构里没有隐藏层，只有输入层、投影层、输出层，且输入层到投影层不带权重，因为只是对输入层做累加求和，学习迭代的是原始输入，而投影层到输出层虽然一开始带了权重，但在实际训练的时候，因为投影层到输出层的计算量巨大，所以改了投影层到输出层的网络结构，去掉了权重，且训练用的方法是HS或负采样。
-> + 2014年`Rong, X`在以`word2vec是一个深度学习模型`这个概念的影响下，`word2vec`的网络结构里涉及神经网络中经典的输入层、隐藏层、输出层，通过从输入层到隐藏层或隐藏层到输出层的权重矩阵去向量化表示词的输入，学习迭代的是两个权重矩阵(分别用$W、W'$表示)，当然，从输入层到隐藏层的权重矩阵$W$的计算量还好(因为隐层的激活函数其实是线性的，相当于没做任何处理，我们要训练这个神经网络，可以用反向传播算法，本质上是链式求导梯度下降那一套。关于如何理解反向传播，请点击[此文](https://www.julyedu.com/question/big/kp_id/26/ques_id/2921)），但从隐藏层到输出层的权重矩阵$W'$的计算量巨大，所以和2013年Mikolov的工作一样，也是去掉了权重$W'$，且训练用的方法也是HS或负采样。
+> + 2014年`Rong, X`在以`word2vec是一个深度学习模型`这个概念的影响下，`word2vec`的网络结构里涉及神经网络中经典的输入层、隐藏层、输出层，通过从输入层到隐藏层或隐藏层到输出层的权重矩阵去向量化表示词的输入，学习迭代的是两个权重矩阵(分别用$W、W'$表示)，当然，从输入层到隐藏层的权重矩阵$W$的计算量还好(因为隐藏层的激活函数其实是线性的，相当于没做任何处理，我们要训练这个神经网络，可以用反向传播算法，本质上是链式求导梯度下降那一套。关于如何理解反向传播，请点击[此文](https://www.julyedu.com/question/big/kp_id/26/ques_id/2921)），但从隐藏层到输出层的权重矩阵$W'$的计算量巨大，所以和2013年Mikolov的工作一样，也是去掉了权重$W'$，且训练用的方法也是HS或负采样。
 
 下面从神经网络的前向过程开始介绍:
 
-我们需要做的是用输入的词去预测输出的词。其中输入层的单词$w_I$使用`one-hot`来表示的，即在上图中$x_1, x_2, x_3,\dots,x_V$，其中只有$x_k$为1，其余为0，$k$可以是输入的词在词汇表中的索引下标。之后就是经过词向量矩阵$\boldsymbol{W}$连接输入层和隐层，其中由于$X$中只有一个1，因此经过与$\boldsymbol{W}$相乘, 相当于取出$\boldsymbol{W}$中的的第$k$行，实际也就是输入单词的$w_I$的$N$维的词向量，$v_{w_I}$表示，来作为隐层的值，注意`word2vec`的隐层并没有激活函数:
+我们需要做的是用输入的词去预测输出的词。其中输入层的单词$w_I$使用`one-hot`来表示的，即在上图中$x_1, x_2, x_3,\dots,x_V$，其中只有$x_k$为1，其余为0，$k$可以是输入的词在词汇表中的索引下标。之后就是经过词向量矩阵$\boldsymbol{W}$连接输入层和隐藏层，其中由于$X$中只有一个1，因此经过与$\boldsymbol{W}$相乘, 相当于取出$\boldsymbol{W}$中的的第$k$行，实际也就是输入单词的$w_I$的$N$维的词向量，$v_{w_I}$表示，来作为隐藏层的值，注意`word2vec`的隐藏层并没有激活函数:
 + $\mathbf{h} = W^T \cdot X = v_{w_I}^T$
 
-然后考虑从隐层的$\mathbf{h}$到输出层$Y$，同样$\mathbf{h}$经过矩阵$W'$相乘，得到一个$V \times 1$的向量$\mathbf{u}$：
+然后考虑从隐藏层的$\mathbf{h}$到输出层$Y$，同样$\mathbf{h}$经过矩阵$W'$相乘，得到一个$V \times 1$的向量$\mathbf{u}$：
 + $\mathbf{u} = W^{'T} \cdot h$
 
 其中$\mathbf{u}$每个元素$\mathbf{u}_j$就是$W'$的第$j$列用$v^{'}_{w_j}$表示，与$h$做内积得到: 
-+ $u_j = v_{w_O}^{'T}\cdot h$
++ $u_j = v_{w_j}^{'T}\cdot h$
 
 含义就是词汇表中第$j$个词的分数，我们的目的就是要根据输入词$w_I$去预测输出的词，因此预测的词就取分数最高的即可，这里为了方便概率表示，使用`softmax`将$\mathbf{u}$归一化到`[0,1]`之间，从而作为输出词的概率，其实是一个多项分布, 也就是上图中的$y$：
 + $P(w_j|w_I) = y_j = \displaystyle\frac{\exp(u_j)}{\sum\limits_{k\in V} \exp(u_k)} =   \displaystyle\frac{\exp(v_{w_j}^{'T}\cdot v_{w_I})}{\sum\limits_{k\in V} \exp(v_{w_k}^{'T}\cdot v_{w_I})}$
@@ -186,9 +186,9 @@ NLP里面，最细粒度的是词语，词语组成句子，句子再组成段�
 
 上面的算法可以用下图表示：
 
-<img src="img/a02.png" style="width:700px;"/>
+<img src="/Users/uc/Desktop/a02.png" style="width:700px;"/>
 
-##### 算法推导
+##### 输出层到隐藏层权重更新
 首先明确训练数据的格式，对于一个训练样本$w_I, w_O$，输入是词$w_i$的`one-hot`的维度为$V$的向量$x$，模型预测的输出同样也是一个维度为$V$的向量$y$，同时真实值$w_O$也是用`one-hot`表示，记为$\mathbf{t}=[0,0,0,\dots,1,0,0]$，其中假设$t_{j^{*}} = 1$，也就是说$t_{j^{*}}$是真实单词在词汇表中的下标，那么根据最大似然或者上面的语言模型，目标函数可以定义如下：
 
 $$\begin{align*} O &= \max P(w_O|w_I) \\ & = \max y_{j^{*}} :=  \max \log y_{j^{*}} \\ &= \max \log(\displaystyle\frac{\exp(u_{j^{*}})}{\sum  \exp(u_k)}) = \max u_{j^{*}}-\log\sum_{k=1}^{V}\exp( u_k) \end{align*}$$
@@ -201,7 +201,7 @@ $\displaystyle E = -u_{j^{*}}+\log\sum_{k=1}^{V}\exp( u_k)$
 先求隐藏层到输出层的向量矩阵$W'$的梯度，利用链式法则得到：
 + $\displaystyle\frac{\partial E}{ \partial w{'}_{ij}} = \frac{\partial E}{\partial u_j} \frac{\partial u_j}{\partial w^{'}_{ij}} = (y_j-t_j) h_i$
 
-推导过程如下：首先推导$\displaystyle\frac{\partial E}{\partial u_j} = y_j - t_j$。我们直接对原始的公式求导，先考虑$E$的对数部分：
+这里面的$y_j$和$t_j$分别是预测和真实值的第$j$项，$h_i$是隐藏层的第$i$项。推导过程如下：首先推导$\displaystyle\frac{\partial E}{\partial u_j} = y_j - t_j$。我们直接对原始的公式求导，先考虑$E$的对数部分：
 + $\displaystyle\frac{\partial \log \sum\exp(u_k)}{\partial u_j} = \frac{\exp(u_j)}{\sum \exp(u_k)} = y_j$
 
 这里应用了导数公式$\displaystyle\frac{\partial \log{x}}{\partial x} = \frac{1}{x}$、以及$\displaystyle\frac{\partial e^x}{\partial x} = e^x$。
@@ -214,7 +214,14 @@ $\displaystyle E = -u_{j^{*}}+\log\sum_{k=1}^{V}\exp( u_k)$
 
 所以综合求导得到$\displaystyle\frac{\partial E}{\partial u_j} = y_j - t_j$，这个减法可以理解为输出层的第$j$项为预测值与真实值的差。
 
+接下来对链式公式的第二项$\displaystyle\frac{\partial u_j}{\partial w^{'}_{ij}}$求导。之前推导前项公式时我们得出：
++ $u_j = v_{w_j}^{'T} \cdot h$
+
+带入求导，得到的导数为隐藏层的第$i$项：
++ $\displaystyle\frac{\partial u_j}{\partial w^{'}_{ij}} = h_i$
+
 求导出隐藏层导输出层的梯度之后，也就得到了梯度下降更新公式：
+
 + $w^{'}_{ij} = {w^{'}_{ij}}^{(old)} -\eta (y_j - t_j) h_i$
 
 整合为$W'$的列向量$\mathbf{v^{'}}_{w_j} = \{w^{'}_{ij}| i=1,2,3,...,N\}$的形式如下：
@@ -222,6 +229,7 @@ $\displaystyle E = -u_{j^{*}}+\log\sum_{k=1}^{V}\exp( u_k)$
 
 也就是说对每个训练样本都需要做一次复杂度为$V$的操作去更新$W'$。
 
+##### 隐藏层到输入层权重更新
 接着考虑隐藏层$h$的更新，其实也是输入层到隐藏层的矩阵$W$的更新。继续反向传播，跟神经网络的相同，输出层的$V$个神经元都会影响$h_i$：
 + $\displaystyle \frac{\partial E}{\partial h_i} = \sum_{j=1}^{V}\frac{\partial E}{\partial u_j}  \frac{\partial u_j}{\partial h_i} = \sum_{j=1}^{V} (y_j-t_j)w^{'}_{ij} =W^{'}_{i} \cdot P$
 
@@ -289,7 +297,7 @@ $w_{i,j}^{'}={w_{ij}^{'}}^{(old)} - \eta Q_j\mathbf{h}_i$
 或者写成词向量的形式，其实就是$W'$的一列：
 $v_{w_j}^{'} = {v_{w_j}^{'}}^{(old)} - \eta Q_j \mathbf{h}, \ j = 1,2,3,\dots,V$
 
-接着考虑对隐层神经元的梯度：
+接着考虑对隐藏层神经元的梯度：
 $\begin{align*}\frac{\partial E}{\partial \mathbf{h}_i} &=\sum_{c=1}^{C}\sum_{j=1}^{V} \frac{\partial E}{\partial u_{c,j}} \frac{\partial u_{c,j}}{\partial \mathbf{h}_i} \\&=\sum_{c=1}^{C}\sum_{j=1}^{V}(y_{c,j}-t_{c,j}) w^{'}_{ij} \\ &= \sum_{j=1}^{V}Q_jw^{'}_{i,j}=W^{'}_{i} \cdot Q \end{align*}$
 
 因此跟`One-Word Model`一样整合成向量的形式：
