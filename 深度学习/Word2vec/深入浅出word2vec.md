@@ -191,7 +191,7 @@ NLP里面，最细粒度的是词语，词语组成句子，句子再组成段�
 ##### 输出层到隐藏层权重更新
 首先明确训练数据的格式，对于一个训练样本$w_I, w_O$，输入是词$w_i$的`one-hot`的维度为$V$的向量$x$，模型预测的输出同样也是一个维度为$V$的向量$y$，同时真实值$w_O$也是用`one-hot`表示，记为$\mathbf{t}=[0,0,0,\dots,1,0,0]$，其中假设$t_{j^{*}} = 1$，也就是说$t_{j^{*}}$是真实单词在词汇表中的下标，那么根据最大似然或者上面的语言模型，目标函数可以定义如下：
 
-$$\begin{align*} O &= \max P(w_O|w_I) \\ & = \max y_{j^{*}} :=  \max \log y_{j^{*}} \\ &= \max \log(\displaystyle\frac{\exp(u_{j^{*}})}{\sum  \exp(u_k)}) = \max u_{j^{*}}-\log\sum_{k=1}^{V}\exp( u_k) \end{align*}$$
+$$\begin{align*} O &= \max P(w_O|w_I) \\ & = \max y_{j^{*}} :=  \max \log y_{j^{*}} \\ &= \max \log(\displaystyle\frac{\exp(u_{j^{*}})}{\sum  \exp(u_k)}) = \max \{ u_{j^{*}}-\log\sum_{k=1}^{V}\exp( u_k) \} \end{align*}$$
 
 一般我们习惯于最小化损失函数，因此定义损失函数：
 $\displaystyle E = -u_{j^{*}}+\log\sum_{k=1}^{V}\exp( u_k)$
@@ -328,7 +328,7 @@ $v_{w_I}^T = v_{w_I}^T - \eta  W^{'} \cdot Q$
 
 这两个策略的出发点是一致的，就是在每个训练样本中，不再完全计算或者更新$W'$这个矩阵。二者都不再显示使用$W'$这个矩阵。因此这也就解释了前面说的为什么不用$W'$作为最终词向量。
 
-在多一句，其实上述训练和推理的复杂度很大的根本原因是softmax的分母上的$\sum$，因此在求梯度的时候，就会有$V$次的计算。因此下面的两种方法其实是对`softmax`的优化，不仅仅限制在`word2vec`。
+在多一句，其实上述训练和推理的复杂度很大的根本原因是`softmax`的分母上的$\sum$，因此在求梯度的时候，就会有$V$次的计算。因此下面的两种方法其实是对`softmax`的优化，不仅仅限制在`word2vec`。
 
 两种优化方式使得`word2vec`的训练速度大大提升，并且词向量的质量几乎没有下降，这也是`word2vec`在NLP领域如此流行的原因。 
 
@@ -368,18 +368,24 @@ $\displaystyle\sum\limits_{j=1}^{V}P(w_j=w_O) =1$
 对于一组训练数据，损失函数的定义与前面相同，最大似然(注意这里以`One-Word Model`为例，`CBOW`与`Skip-Gram`按照上述的思路完全一样)：
 $E = -\log P(w=w_O|w_I) = - \sum\limits_{j=1}^{L(w)-1}\log \sigma([I] {v^{'}_{j}}^{T} \mathbf{h})$
 
-我们对损失函数逐项求梯度。先考虑$v^T \mathbf{h}$，注意$\displaystyle\frac{\partial \sigma(x)}{x} = \sigma(1-\sigma)$：
-$\displaystyle\begin{align*} \frac{\partial E}{\partial v^{'}_j \mathbf{h}} &= (\sigma([I] {v_{j}^{'}}^T \mathbf{h}))[I] \end{align*}$
+我们对损失函数逐项求梯度。先考虑$v^T \mathbf{h}$，注意$\displaystyle\frac{\partial \sigma(x)}{x} = \sigma(1-\sigma)$，利用链式法则求导得到：
+$\displaystyle\begin{align*} \frac{\partial E}{\partial v^{'}_j \mathbf{h}} &= \Big(\sigma([I] {v_{j}^{'}}^T \mathbf{h})-1\Big)[I] \end{align*}$
 
-之后对$[I]$分情况讨论可得：$\displaystyle\frac{\partial E}{\partial {v^{'}_{j}}^T \mathbf{h}} = \sigma( {v^{'}_{j}}^T \mathbf{h}) - t_j$，这里如果$[I]=1$, 那么$t_j=1$，否则$t_j=0$，这个公式与前面的$y_j−t_j$很类似，可以理解为预测值与实际值的差别。
+之后对$[I]$分情况讨论可得：
+$\displaystyle\begin{align*} \frac{\partial E}{\partial v^{'}_j \mathbf{h}} &= (\sigma([I] {v_{j}^{'}}^T \mathbf{h})-1)[I] \\ &= \left\{\begin{array}{lr} \sigma( {v_{j}^{'}}^T \mathbf{h})-1, & [I]=1 \\\sigma({v_{j}^{'}}^T \mathbf{h}) & [I]=-1 \end{array} \right. \\ &= \sigma({v_{j}^{'}}^T \mathbf{h})-t_j \end{align*}$
 
-有了上述的梯度,就可以很简单的求出$v^{''}$的梯度了：
+这里如果$[I]=1$, 那么$t_j=1$；如果$[I]=-1$，则$t_j=0$，这个公式与前面的$y_j−t_j$很类似，可以理解为预测值与实际值的差别。
+
+> 当$[I]=-1$时，上面公式的推导可以简化为：
+> $\displaystyle(\sigma(-x)-1)*(-1) = 1-\frac{1}{1+e^x} = \frac{e^x}{1+e^x} = \frac{e^xe^{-x}}{e^{-1}+e^xe^{-x}} = \frac{1}{1+e^{-x}} = \sigma(x)$
+
+有了上述的梯度,就可以很简单的求出$v^{'}$的梯度了：
 $\displaystyle\frac{\partial E}{\partial v^{'}_j} = \frac{\partial E}{\partial  {v^{'}_{j}}^T \mathbf{h}} \frac{\partial  {v^{'}_{j}}^T \mathbf{h}}{\partial   {v^{'}_{j}}^T} = (\sigma( {v^{'}_{j}}^T \mathbf{h}) - t_j) \mathbf{h}$
 
 求出梯度之后，我们应用梯度下降法更新参数：
 $\displaystyle {v^{'}_{j}}^{(new)} = {v^{'}_{j}}^{(old)} - \eta (\sigma( {v^{'}_{j}}^T \mathbf{h}) - t_j) \mathbf{h},\ j=1,2,3,...,L(w)-1$
 
-也就是说对于一个训练样本，我们只需要更新$\boldsymbol{L}(w)−1$个向量就好了，而未优化的版本需要更新$V$，相当于时间复杂度从$O(V)$降到了$O(\logV)$，这个提升还是非常大的。同时在考察空间复杂度，`HS`的二叉树的非叶子节点有$V−1$个，也就是我们需要$V−1$存储$v^{'}_{j},\ \ j=1,2,3..V-1$，优化之前则是$V$个，空间复杂度相同，但是时间复杂度却大大降低。
+也就是说对于一个训练样本，我们只需要更新$\boldsymbol{L}(w)−1$个向量就好了，而未优化的版本需要更新$V$，相当于时间复杂度从$O(V)$降到了$O(\log V)$，这个提升还是非常大的。同时在考察空间复杂度，`HS`的二叉树的非叶子节点有$V−1$个，也就是我们需要$V−1$存储$v^{'}_{j},\ \ j=1,2,3..V-1$，优化之前则是$V$个，空间复杂度相同，但是时间复杂度却大大降低。
 
 然后考虑隐藏层$\mathbf{h}$的梯度，因为我们的优化目标都是在隐藏层到输出层，因此前面的几乎不变， 跟`One-Word Model`一样，路径上的非叶子节点的表达式都含有$\mathbf{h}$，因此需要对梯度求和：
 $\displaystyle \begin{align*} \frac{\partial E}{\partial \mathbf{h}} &= \sum\limits_{j=1}^{L(w)-1} \frac{\partial E}{\partial {v^{'}_{j}}^T  \mathbf{h}} \frac{\partial {v^{'}_{j}}^T  \mathbf{h}}{\partial \mathbf{h}} \\ &=\sum\limits_{j=1}^{L(w)-1}(\sigma( {v^{'}_{j}}^T \mathbf{h}) - t_j)\cdot v^{'}_{j}\end{align*}$

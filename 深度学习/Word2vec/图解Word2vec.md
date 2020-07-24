@@ -192,9 +192,9 @@
 
 <img src="images/lm-sliding-window-4.png" style="width:600px;"/>
 
-在实际应用中，模型往往在我们滑动窗口时就被训练的。但是我觉得将生成数据集和训练模型分为两个阶段会显得更清晰易懂一些。除了使用神经网络建模之外，大家还常用一项名为`N-gams`的技术进行模型训练。
+在实际应用中，模型往往在我们滑动窗口时就被训练的。但是我觉得将生成数据集和训练模型分为两个阶段会显得更清晰易懂一些。除了使用神经网络建模之外，大家还常用一项名为`N-grams`的技术进行模型训练。
 
-如果想了解现实产品从使用`N-gams`模型到使用神经模型的转变，可以看一下Swiftkey (我最喜欢的安卓输入法)在2015年的发表一篇博客，文中介绍了他们的自然语言模型及该模型与早期`N-gams`模型的对比。我很喜这个例子，因为这个它能告诉你如何在营销宣讲中把Embedding的算法属性解释清楚。
+如果想了解现实产品从使用`N-grams`模型到使用神经模型的转变，可以看一下Swiftkey (我最喜欢的安卓输入法)在2015年的发表一篇博客，文中介绍了他们的自然语言模型及该模型与早期`N-grams`模型的对比。我很喜这个例子，因为这个它能告诉你如何在营销宣讲中把Embedding的算法属性解释清楚。
 
 ## 4.1 顾及两头
 > "Paradox is a pointer telling you to look beyond it. If paradoxes bother you, that betrays your deep desire for absolutes. The relativist treats a paradox merely as interesting, perhaps amusing or even, dreadful thought, educational." ~God Emperor of Dune
